@@ -1,0 +1,389 @@
+Prompt2
+Actúa como un programador PHP. Voy a crear una aplicación web CRUD muy simple con Backend REST en PHP y Frontend HTML + AJAX (jQuery). Basado en el siguiente enunciado:
+[ENUNCIADO]
+Genera el código sin comentarios y sin explicaciones. Entrega la respuesta completa en una sola vez: código completo de conexion.php, cruds.php, api.php, indexTabla.html, y al final el SQL para phpMyAdmin (XAMPP, InnoDB, utf8) incluyendo los datos predefinidos que mencione el enunciado.
+
+De mi enunciado deducí: nombre de la base de datos, nombre de las tablas, sus campos, el campo clave, qué consultas se piden, y qué acciones (botones) y campos de formulario se necesitan. No agregues campos ni funciones que el enunciado NO mencione.
+
+conexion.php — EXACTAMENTE este estilo (solo cambiá el nombre de la base de datos según mi enunciado):
+<?php
+class conexion
+{
+    public static function conectar()
+    {
+        $servername = "localhost";
+        $username = "root";
+        $password = "";
+        $dbname = "[NOMBRE DE LA BD DEL ENUNCIADO]";
+        try {
+            $conn = new PDO ("mysql:host=$servername;dbname=$dbname", $username, $password);
+        } catch (PDOException $e) {
+            die("Error de la conexion: " . $e->getMessage());
+        }
+        return $conn;
+    }
+}
+?>
+
+api.php — EXACTAMENTE este estilo (solo cambiá los nombres de los métodos si el enunciado pide otros):
+<?php
+include ("cruds.php");
+$opcion = $_SERVER['REQUEST_METHOD'];
+switch ($opcion) {
+    case 'GET':
+        cruds::listar();
+        break;
+    case 'POST':
+        cruds::insertar();
+        break;
+    case 'DELETE':
+        cruds::eliminar();
+        break;
+    case 'PUT':
+        cruds::actualizar();
+        break;
+}
+?>
+
+Reglas de estilo obligatorias:
+- cruds.php: incluye conexion.php. Clase cruds con métodos estáticos. En cada método usa $conn = new conexion(); $conectar = $conn->conectar();.
+  - Lee datos con $_POST (INSERT) y $_GET (DELETE y PUT). PROHIBIDO file_get_contents("php://input") y json_decode.
+  - Usa parámetros con nombre (:clave) con bindParam(':clave', $variable). PROHIBIDO posicionales ?.
+  - PROHIBIDO try/catch, http_response_code, {success, mensaje}. Solo cadenas simples o json_encode($datos) para SELECTs.
+  - En insertar() y actualizar(), antes del INSERT/UPDATE validá que existan las claves foráneas (ej: que la cédula del cliente exista y que el id del producto exista) haciendo un SELECT con preparada y fetch. Si todo existe, registra y responde "Registrado"/"Actualizado"; si no, responde el mensaje de error correspondiente (ej: "Cliente o producto no existe"). Esta es la única validación que debes incluir: no agregues otras comprobaciones extra.
+  - Si piden varias consultas (listar todo, buscar por clave, ver detalle, catálogos), sepa eqlas dentro de listar() con $accion = isset($_GET["accion"]) ? $_GET["accion"] : "[POR DEFECTO]" y un if por consulta. Si es una sola, listar() simple.
+  - Si se relacionan tablas usá JOIN, nada más complejo.
+- indexTabla.html: sin jQuery EasyUI ni datagrid (solo HTML + jQuery $.ajax con dataType: "json"). Usá https://code.jquery.com/jquery-3.6.0.min.js.
+  - Crea ÚNICAMENTE los botones y campos que pida el enunciado (Listar, y Guardar si hay registro; Editar/Eliminar solo si el enunciado los pide). NUNCA agregues un botón Editar1 ni una columna/fecha a menos que el enunciado la pida.
+  - Si el enunciado dice manejar clientes/proveedores "por Apellido Nombre" o productos "por nombre", usa <select> desplegables cargados por AJAX (para elegir existentes), y muestra cliente como "Apellido Nombre" y producto como su nombre. Si solo pide campos libres, usá inputs simples.
+  - Tabla HTML <table border="1">, filas armadas por concatenación de string (tabla += "<tr><td>"+...+"</td></tr>") en un forEach. Mensajes en <p id="resultado"> o alert().
+  - PROHIBIDO URLSearchParams, encodeURIComponent, responseJSON. Arma la URL con + (ej: api.php?accion=cliente&cedula="+valor).
+  - Consultas GET con api.php?accion=...; formulario de registro con data: { ... } en POST.
+- SQL: CREATE DATABASE (según mi enunciado) y USE; las tablas que pida (PKs, tipos, FOREIGN KEY si aplica), sin campos extra que el enunciado no mencione, y los INSERT de los datos predefinidos (ej. jabón, shampoo, pasta dental).
+
+Genera todo sin comentarios en el código.
+
+Prompt1
+Prompt 1
+
+Actúa como un programador PHP. Voy a crear una aplicación web CRUD muy simple con Backend REST en PHP y Frontend HTML + AJAX (jQuery). Basado en el siguiente enunciado:
+
+En una pequeña empresa de venta de productos (predefinidos quemados desde la base (jabón, shampoo y pasta dental)), desea desarrollar una aplicación web que permita gestionar clientes y sus pedidos. La empresa necesita un sistema simple pero funcional que permita:
+[ENUNCIADO]
+Genera el código sin comentarios y sin explicaciones. Entrega la respuesta completa en una sola vez: código completo de conexion.php, cruds.php, api.php, indexTabla.html, y al final el SQL para phpMyAdmin (XAMPP, InnoDB, utf8) incluyendo los datos predefinidos que mencione el enunciado.
+
+De mi enunciado deducí: nombre de la base de datos, nombre de las tablas, sus campos, el campo clave, qué consultas se piden, y qué acciones (botones) y campos de formulario se necesitan. No agregues campos ni funciones que el enunciado NO mencione.
+
+conexion.php — EXACTAMENTE este estilo (solo cambiá el nombre de la base de datos según mi enunciado):
+<?php
+class conexion
+{
+    public static function conectar()
+    {
+        $servername = "localhost";
+        $username = "root";
+        $password = "";
+        $dbname = "[NOMBRE DE LA BD DEL ENUNCIADO]";
+        try {
+            $conn = new PDO ("mysql:host=$servername;dbname=$dbname", $username, $password);
+        } catch (PDOException $e) {
+            die("Error de la conexion: " . $e->getMessage());
+        }
+        return $conn;
+    }
+}
+?>
+
+api.php — EXACTAMENTE este estilo (solo cambiá los nombres de los métodos si el enunciado pide otros):
+<?php
+include ("cruds.php");
+$opcion = $_SERVER['REQUEST_METHOD'];
+switch ($opcion) {
+    case 'GET':
+        cruds::listar();
+        break;
+    case 'POST':
+        cruds::insertar();
+        break;
+    case 'DELETE':
+        cruds::eliminar();
+        break;
+    case 'PUT':
+        cruds::actualizar();
+        break;
+}
+?>
+
+Reglas de estilo obligatorias:
+- cruds.php: incluye conexion.php. Clase cruds con métodos estáticos. En cada método usa $conn = new conexion(); $conectar = $conn->conectar();.
+  - Lee datos con $_POST (INSERT) y $_GET (DELETE y PUT). PROHIBIDO file_get_contents("php://input") y json_decode.
+  - Usa parámetros con nombre (:clave) con bindParam(':clave', $variable). PROHIBIDO posicionales ?.
+  - PROHIBIDO try/catch, http_response_code, {success, mensaje}. Solo cadenas simples o json_encode($datos) para SELECTs.
+  - Si piden varias consultas (listar todo, buscar por clave, ver detalle, catálogos), sepa eqlas dentro de listar() con $accion = isset($_GET["accion"]) ? $_GET["accion"] : "[POR DEFECTO]" y un if por consulta. Si es una sola, listar() simple.
+  - Si se relacionan tablas usá JOIN, nada más complejo.
+- indexTabla.html: sin jQuery EasyUI ni datagrid (solo HTML + jQuery $.ajax con dataType: "json"). Usá https://code.jquery.com/jquery-3.6.0.min.js.
+  - Crea ÚNICAMENTE los botones y campos que pida el enunciado (Listar, y Guardar si hay registro; Editar/Eliminar solo si el enunciado los pide). NUNCA agregues un botón Editar1 ni una columna/la fecha a menos que el enunciado la pida.
+  - Si el enunciado dice manejar clientes/proveedores "por Apellido Nombre" o productos "por nombre", usa <select> desplegables cargados por AJAX (para elegir existentes), y muestra cliente como "Apellido Nombre" y producto como su nombre. Si solo pide campos libres, usá inputs simples.
+  - Tabla HTML <table border="1">, filas armadas por concatenación de string (tabla += "<tr><td>"+...+"</td></tr>") en un forEach. Mensajes en <p id="resultado"> o alert().
+  - PROHIBIDO URLSearchParams, encodeURIComponent, responseJSON. Arma la URL con + (ej: api.php?accion=cliente&cedula="+valor).
+  - Consultas GET con api.php?accion=...; formulario de registro con data: { ... } en POST.
+- SQL: CREATE DATABASE (según mi enunciado) y USE; las tablas que pida (PKs, tipos, FOREIGN KEY si aplica), sin campos extra que el enunciado no mencione, y los INSERT de los datos predefinidos (ej. jabón, shampoo, pasta dental).
+
+Genera todo sin comentarios en el código.
+========================================================================
+sql
+CREATE DATABASE IF NOT EXISTS productos_ventas;
+USE productos_ventas;
+
+CREATE TABLE cliente (
+    cliCedula VARCHAR(15) PRIMARY KEY,
+    cliNombre VARCHAR(50) NOT NULL,
+    cliApellido VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE producto (
+    prodId INT AUTO_INCREMENT PRIMARY KEY,
+    prodNombre VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE pedido (
+    pedId INT AUTO_INCREMENT PRIMARY KEY,
+    cliCedula VARCHAR(15) NOT NULL,
+    prodId INT NOT NULL,
+    FOREIGN KEY (cliCedula) REFERENCES cliente(cliCedula),
+    FOREIGN KEY (prodId) REFERENCES producto(prodId)
+);
+
+INSERT INTO producto (prodNombre) VALUES
+('Jabon'),
+('Shampoo'),
+('Pasta Dental');
+
+INSERT INTO cliente (cliCedula, cliNombre, cliApellido) VALUES
+('1234567890', 'Juan', 'Perez');
+
+==============conexion.php==============
+
+<?php
+class conexion
+{
+    public static function conectar()
+    {
+        $servername = "localhost";
+        $username = "root";
+        $password = "";
+        $dbname = "productos_ventas";
+        try {
+            $conn = new PDO ("mysql:host=$servername;dbname=$dbname", $username, $password);
+        } catch (PDOException $e) {
+            die("Error de la conexion: " . $e->getMessage());
+        }
+        return $conn;
+    }
+}
+?>
+
+api
+<?php
+include ("cruds.php");
+$opcion = $_SERVER['REQUEST_METHOD'];
+switch ($opcion) {
+    case 'GET':
+        $accion = isset($_GET['accion']) ? $_GET['accion'] : 'listarClientes';
+        switch ($accion) {
+            case 'listarClientes':
+                cruds::listarClientes();
+                break;
+            case 'buscarCliente':
+                cruds::buscarCliente();
+                break;
+            case 'listarProductos':
+                cruds::listarProductos();
+                break;
+            case 'pedidosCliente':
+                cruds::pedidosCliente();
+                break;
+        }
+        break;
+    case 'POST':
+        cruds::insertarPedido();
+        break;
+}
+?>
+
+==============cruds.php==============
+<?php
+include ("conexion.php");
+class cruds{
+    public static function insertarPedido(){
+        $conn = new conexion();
+        $conectar = $conn->conectar();
+        $cliCedula = $_POST['cliCedula'];
+        $prodId = $_POST['prodId'];
+
+        $sqlInsert = "INSERT INTO pedido (cliCedula, prodId) VALUES (:cedula, :prodId)";
+        $resultado = $conectar->prepare($sqlInsert);
+        $resultado->bindParam(':cedula', $cliCedula);
+        $resultado->bindParam(':prodId', $prodId);
+        $resultado->execute();
+
+        $data="Pedido registrado";
+        print_r(json_encode($data));
+    }
+
+    public static function listarClientes(){
+        $conn = new conexion();
+        $conectar = $conn->conectar();
+        $sql = "SELECT cliCedula, cliNombre, cliApellido FROM cliente";
+        $resultado = $conectar->prepare($sql);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data);
+    }
+
+    public static function buscarCliente(){
+        $conn = new conexion();
+        $conectar = $conn->conectar();
+        $cedula = $_GET['cliCedula'];
+        $sql = "SELECT cliCedula, cliNombre, cliApellido FROM cliente WHERE cliCedula = :cedula";
+        $resultado = $conectar->prepare($sql);
+        $resultado->bindParam(':cedula', $cedula);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data);
+    }
+
+    public static function listarProductos(){
+        $conn = new conexion();
+        $conectar = $conn->conectar();
+        $sql = "SELECT prodId, prodNombre FROM producto";
+        $resultado = $conectar->prepare($sql);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data);
+    }
+
+    public static function pedidosCliente(){
+        $conn = new conexion();
+        $conectar = $conn->conectar();
+        $cedula = $_GET['cliCedula'];
+        $sql = "SELECT pedido.pedId, cliente.cliApellido, cliente.cliNombre, producto.prodNombre
+                FROM pedido
+                INNER JOIN cliente ON pedido.cliCedula = cliente.cliCedula
+                INNER JOIN producto ON pedido.prodId = producto.prodId
+                WHERE pedido.cliCedula = :cedula";
+        $resultado = $conectar->prepare($sql);
+        $resultado->bindParam(':cedula', $cedula);
+        $resultado->execute();
+        $data=$resultado->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($data);
+    }
+}
+?>
+
+==============indexTabla.html==============
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion de Clientes y Pedidos</title>
+</head>
+
+<body>
+    <h2>Gestion de Clientes y Pedidos</h2>
+
+    <h3>Registrar Pedido</h3>
+    Cliente: <select id="cliCedula"></select><br>
+    Producto: <select id="prodId"></select><br>
+    <button id="btnRegistrar">Registrar Pedido</button>
+
+    <h3>Consultar Clientes</h3>
+    <button id="btnListarClientes">Listar Clientes</button><br>
+    Cedula: <input type="text" id="cliCedulaBuscar">
+    <button id="btnBuscarCliente">Buscar Cliente</button>
+
+    <h3>Ver Pedidos de un Cliente</h3>
+    Cedula: <input type="text" id="cliCedulaPedidos">
+    <button id="btnVerPedidos">Ver Pedidos</button>
+
+    <p id="resultado"></p>
+
+    <script>
+        const ApiUrl = "http://localhost/Ejercicios/simulacro/api.php";
+
+        async function cargarOpciones() {
+            const clientes = await fetch(ApiUrl + "?accion=listarClientes").then(r => r.json());
+            const selectCli = document.getElementById("cliCedula");
+            selectCli.innerHTML = "";
+            clientes.forEach(c => {
+                let op = document.createElement("option");
+                op.value = c.cliCedula;
+                op.text = c.cliApellido + " " + c.cliNombre;
+                selectCli.appendChild(op);
+            });
+
+            const productos = await fetch(ApiUrl + "?accion=listarProductos").then(r => r.json());
+            const selectProd = document.getElementById("prodId");
+            selectProd.innerHTML = "";
+            productos.forEach(p => {
+                let op = document.createElement("option");
+                op.value = p.prodId;
+                op.text = p.prodNombre;
+                selectProd.appendChild(op);
+            });
+        }
+
+        document.getElementById("btnRegistrar").addEventListener("click", async () => {
+            const datos = new FormData();
+            datos.append("cliCedula", document.getElementById("cliCedula").value);
+            datos.append("prodId", document.getElementById("prodId").value);
+            const resp = await fetch(ApiUrl, { method: "POST", body: datos }).then(r => r.json());
+            document.getElementById("resultado").innerHTML = JSON.stringify(resp);
+        });
+
+        document.getElementById("btnListarClientes").addEventListener("click", async () => {
+            const clientes = await fetch(ApiUrl + "?accion=listarClientes").then(r => r.json());
+            let tabla = `<table border="1"><thead><tr><th>Cedula</th><th>Apellido</th><th>Nombre</th></tr></thead><tbody>`;
+            clientes.forEach(c => {
+                tabla += `<tr><td>${c.cliCedula}</td><td>${c.cliApellido}</td><td>${c.cliNombre}</td></tr>`;
+            });
+            tabla += `</tbody></table>`;
+            document.getElementById("resultado").innerHTML = tabla;
+        });
+
+        document.getElementById("btnBuscarCliente").addEventListener("click", async () => {
+            const cedula = document.getElementById("cliCedulaBuscar").value;
+            const resp = await fetch(ApiUrl + "?accion=buscarCliente&cliCedula=" + cedula).then(r => r.json());
+            if (resp.length === 0) {
+                document.getElementById("resultado").innerHTML = "Cliente no encontrado";
+                return;
+            }
+            let tabla = `<table border="1"><thead><tr><th>Cedula</th><th>Apellido</th><th>Nombre</th></tr></thead><tbody>`;
+            resp.forEach(c => {
+                tabla += `<tr><td>${c.cliCedula}</td><td>${c.cliApellido}</td><td>${c.cliNombre}</td></tr>`;
+            });
+            tabla += `</tbody></table>`;
+            document.getElementById("resultado").innerHTML = tabla;
+        });
+
+        document.getElementById("btnVerPedidos").addEventListener("click", async () => {
+            const cedula = document.getElementById("cliCedulaPedidos").value;
+            const resp = await fetch(ApiUrl + "?accion=pedidosCliente&cliCedula=" + cedula).then(r => r.json());
+            if (resp.length === 0) {
+                document.getElementById("resultado").innerHTML = "El cliente no tiene pedidos";
+                return;
+            }
+            let tabla = `<table border="1"><thead><tr><th>Cliente</th><th>Producto</th></tr></thead><tbody>`;
+            resp.forEach(p => {
+                tabla += `<tr><td>${p.cliApellido} ${p.cliNombre}</td><td>${p.prodNombre}</td></tr>`;
+            });
+            tabla += `</tbody></table>`;
+            document.getElementById("resultado").innerHTML = tabla;
+        });
+
+        cargarOpciones();
+    </script>
+</body>
+
+</html>
