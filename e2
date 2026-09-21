@@ -1,0 +1,602 @@
+Comandos si pide:
+# 1. Crear el proyecto
+composer create-project laravel/laravel grupo1
+# 2. Configurar entorno
+cp .env.example .env
+php artisan key:generate
+# 3. Instalar Sanctum (autenticación API)
+composer require laravel/sanctum
+php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+# 4. Ejecutar migraciones (crea users, cache, jobs, personal_access_tokens)
+php artisan migrate
+# 5. Crear modelo y controlador
+php artisan make:model Estudiante
+php artisan make:controller EstudianteController
+# 6. Instalar dependencias frontend
+npm install
+El .env se configuró manualmente para apuntar a MySQL (DB_DATABASE=soa5to, DB_USERNAME=root).
+También existe el script composer setup que automatiza todo (install, key:generate, migrate, npm install, build).
+=============E1=================
+Crea una API RESTful en php para gestionar Autores y Libros, donde un Autor puede tener
+muchos Libros, pero cada Libro pertenece a un solo Autor.
+Crea los modelos y sus migraciones:
+· Autor (campos: id, nombre, correo)
+· Libro (campos: id, titulo, anio_publicacion, autor_id)
+Debe manejar: 2Puntos
+· GET /api/autores - Listar todos los autores
+· POST /api/autores - Crear un nuevo autor
+· PUT /api/autores/{id} - Actualizar un autor existente
+· GET /api/Autores/{nombre}- Muestra el libro o libros de dicho autor
+Debe manejar: 2Puntos
+· GET /api/libros - Listar todos los libros
+· GET /api/libros/{titulo} - Mostrar un libro especifico
+· POST /api/libros - Crear un nuevo libro asociado a un autor(Cargar en un
+combo los autores para selección por su nombre)j
+· PUT /api/libros/{id} - Actualizar un libro existente
+Nota: Si la base de datos esta mal el sistema esta mal( 0 puntos).
+Se calificara si están todos los puntos de cada ítem no de manera individual
+Se califica el consumo de los servicios con un FrontEnd.
+=============E2===================
+Crea una Api REST en php para gestionar Autores y Libros, donde un Autor puede tener muchos Libros, pero cada Libro pertenece a un solo Autor.
+
+Autor (campos: id, nombre, correo)
+Libro (campos: id, titulo, anio_publicacion, autor_id)
+
+Debe manejar: 2Puntos
+GET /api/autores → Listar todos los autores
+GET /api/autores/{apellido} → Mostrar un autor específico
+POST /api/autores → Crear un nuevo autor
+PUT /api/autores/{id} → Actualizar un autor existente
+DELETE /api/autores/{id} → Eliminar un autor
+
+Debe manejar: 2Puntos
+GET /api/libros → Listar todos los libros
+GET /api/libros/{titulo} → Mostrar un libro específico
+POST /api/libros → Crear un nuevo libro asociado a un autor(Cargar en un combo los autores para selección por su nombre)
+PUT /api/libros/{id} → Actualizar un libro existente
+DELETE /api/libros/{id} → Eliminar un libro
+
+Nota: Si la base de datos está mal el sistema está mal (0 puntos). Se califican si están los 5 puntos de cada item no de manera individual. Se califican el consumo de los servicios solo si está consumido con un FrontEnd.
+============================================LIBROS=================================================
+Comandos Buenos
+Terminal 1 - Crear proyecto:
+cd C:\xampp\htdocs
+composer create-project laravel/laravel Libros
+
+Terminal 2 - Configurar BD:
+Abre Libros/.env y cambia estas líneas:
+DB_DATABASE=libros_db
+DB_USERNAME=root
+DB_PASSWORD=
+
+Ejecuta estos comandos en orden:
+# Crear modelos con migraciones
+php artisan make:model Autor -m
+php artisan make:model Libro -m
+
+=====SQL=====
+CREATE DATABASE libros_api;
+
+USE libros_api;
+
+CREATE TABLE autores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    correo VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE libros (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    anio_publicacion INT NOT NULL,
+    autor_id INT NOT NULL,
+    FOREIGN KEY (autor_id) REFERENCES autores(id) ON DELETE CASCADE
+);
+=============
+
+# Crear controladores API
+php artisan make:controller Api/AutorController --api
+php artisan make:controller Api/LibroController --api
+php artisan install:api
+
+# Ejecutar migraciones (después de crear las migraciones y el SQL)
+php artisan migrate
+
+Ahora ejecuta este comando para crear las tablas en la BD:
+php artisan migrate:fresh
+Esto borra cualquier tabla anterior y crea las correctas con todos los campos. Después ejecuta:
+php artisan serve
+Y abre en el navegador: http://127.0.0.1:8000/index.html
+
+
+================archivos==================
+----------------database/migrations/..._create_autors_table.php
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('autores', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre');
+            $table->string('correo');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('autores');
+    }
+};
+
+----------------database/migrations/..._create_libros_table.php
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('libros', function (Blueprint $table) {
+            $table->id();
+            $table->string('titulo');
+            $table->integer('anio_publicacion');
+            $table->unsignedBigInteger('autor_id');
+            $table->foreign('autor_id')->references('id')->on('autores')->onDelete('cascade');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('libros');
+    }
+};
+
+----------------app/Models/Autor.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Autor extends Model
+{
+    public $timestamps = false;
+    protected $table = 'autores';
+    protected $fillable = ['nombre', 'correo'];
+
+    public function libros()
+    {
+        return $this->hasMany(Libro::class);
+    }
+}
+
+-----------------app/Models/Libro.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Libro extends Model
+{
+    public $timestamps = false;
+    protected $table = 'libros';
+    protected $fillable = ['titulo', 'anio_publicacion', 'autor_id'];
+
+    public function autor()
+    {
+        return $this->belongsTo(Autor::class);
+    }
+}
+
+----------------app/Http/Controllers/Api/AutorController.php
+
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Autor;
+use Illuminate\Http\Request;
+
+class AutorController extends Controller
+{
+    public function index()
+    {
+        return Autor::all();
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nombre' => 'required',
+            'correo' => 'required|email',
+        ]);
+
+        return Autor::create($request->only('nombre', 'correo'));
+    }
+
+    public function showByApellido($apellido)
+    {
+        $autor = Autor::where('nombre', 'LIKE', "%{$apellido}%")->first();
+
+        if (!$autor) {
+            return response()->json(['message' => 'Autor no encontrado'], 404);
+        }
+
+        return $autor->libros;
+    }
+
+    public function update(Request $request, $id)
+    {
+        $autor = Autor::findOrFail($id);
+
+        $request->validate([
+            'nombre' => 'required',
+            'correo' => 'required|email',
+        ]);
+
+        $autor->update($request->only('nombre', 'correo'));
+
+        return $autor;
+    }
+
+    public function destroy($id)
+    {
+        $autor = Autor::findOrFail($id);
+        $autor->delete();
+
+        return response()->json(['message' => 'Autor eliminado']);
+    }
+}
+
+----------------app/Http/Controllers/Api/LibroController.php
+
+
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Libro;
+use Illuminate\Http\Request;
+
+class LibroController extends Controller
+{
+    public function index()
+    {
+        return Libro::all();
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'titulo' => 'required',
+            'anio_publicacion' => 'required|integer',
+            'autor_id' => 'required|exists:autores,id',
+        ]);
+
+        return Libro::create($request->only('titulo', 'anio_publicacion', 'autor_id'));
+    }
+
+    public function showByTitulo($titulo)
+    {
+        $libro = Libro::where('titulo', 'LIKE', "%{$titulo}%")->first();
+
+        if (!$libro) {
+            return response()->json(['message' => 'Libro no encontrado'], 404);
+        }
+
+        return $libro;
+    }
+
+    public function update(Request $request, $id)
+    {
+        $libro = Libro::findOrFail($id);
+
+        $request->validate([
+            'titulo' => 'required',
+            'anio_publicacion' => 'required|integer',
+            'autor_id' => 'required|exists:autores,id',
+        ]);
+
+        $libro->update($request->only('titulo', 'anio_publicacion', 'autor_id'));
+
+        return $libro;
+    }
+
+    public function destroy($id)
+    {
+        $libro = Libro::findOrFail($id);
+        $libro->delete();
+
+        return response()->json(['message' => 'Libro eliminado']);
+    }
+}
+
+----------------routes/api.php
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AutorController;
+use App\Http\Controllers\Api\LibroController;
+
+// Autores
+Route::get('/autores', [AutorController::class, 'index']);
+Route::post('/autores', [AutorController::class, 'store']);
+Route::get('/autores/{apellido}', [AutorController::class, 'showByApellido']);
+Route::put('/autores/{id}', [AutorController::class, 'update']);
+Route::delete('/autores/{id}', [AutorController::class, 'destroy']);
+
+// Libros
+Route::get('/libros', [LibroController::class, 'index']);
+Route::get('/libros/{titulo}', [LibroController::class, 'showByTitulo']);
+Route::post('/libros', [LibroController::class, 'store']);
+Route::put('/libros/{id}', [LibroController::class, 'update']);
+Route::delete('/libros/{id}', [LibroController::class, 'destroy']);
+
+----------------public/index.html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion de Autores y Libros</title>
+</head>
+<body>
+
+<h1>AUTORES</h1>
+
+<h3>Crear Autor</h3>
+<form onsubmit="crearAutor(event)">
+    Nombre: <input type="text" id="autor_nombre"><br><br>
+    Correo: <input type="email" id="autor_correo"><br><br>
+    <button type="submit">Crear</button>
+</form>
+
+<h3>Actualizar Autor</h3>
+<form onsubmit="actualizarAutor(event)">
+    ID: <input type="number" id="autor_upd_id"><br><br>
+    Nombre: <input type="text" id="autor_upd_nombre"><br><br>
+    Correo: <input type="email" id="autor_upd_correo"><br><br>
+    <button type="submit">Actualizar</button>
+</form>
+
+<h3>Eliminar Autor</h3>
+<form onsubmit="eliminarAutor(event)">
+    ID: <input type="number" id="autor_del_id"><br><br>
+    <button type="submit">Eliminar</button>
+</form>
+
+<h3>Buscar Autor por nombre (muestra libros)</h3>
+<form onsubmit="buscarAutor(event)">
+    Nombre: <input type="text" id="autor_buscar_nombre"><br><br>
+    <button type="submit">Buscar</button>
+</form>
+
+<h3>Resultado Autor:</h3>
+<pre id="resultado_autor"></pre>
+
+<hr>
+
+<h1>LIBROS</h1>
+
+<h3>Crear Libro</h3>
+<form onsubmit="crearLibro(event)">
+    Titulo: <input type="text" id="libro_titulo"><br><br>
+    Anio: <input type="number" id="libro_anio"><br><br>
+    Autor:
+    <select id="libro_autor_id"></select><br><br>
+    <button type="submit">Crear</button>
+</form>
+
+<h3>Actualizar Libro</h3>
+<form onsubmit="actualizarLibro(event)">
+    ID: <input type="number" id="libro_upd_id"><br><br>
+    Titulo: <input type="text" id="libro_upd_titulo"><br><br>
+    Anio: <input type="number" id="libro_upd_anio"><br><br>
+    Autor:
+    <select id="libro_upd_autor_id"></select><br><br>
+    <button type="submit">Actualizar</button>
+</form>
+
+<h3>Eliminar Libro</h3>
+<form onsubmit="eliminarLibro(event)">
+    ID: <input type="number" id="libro_del_id"><br><br>
+    <button type="submit">Eliminar</button>
+</form>
+
+<h3>Buscar Libro por titulo</h3>
+<form onsubmit="buscarLibro(event)">
+    Titulo: <input type="text" id="libro_buscar_titulo"><br><br>
+    <button type="submit">Buscar</button>
+</form>
+
+<h3>Resultado Libro:</h3>
+<pre id="resultado_libro"></pre>
+
+<h3>Todos los Libros:</h3>
+<pre id="lista_libros"></pre>
+
+<script>
+    var BASE = '/api';
+
+    function cargarAutores() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', BASE + '/autores');
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var autores = JSON.parse(xhr.responseText);
+                var selects = document.querySelectorAll('select');
+                selects.forEach(function(sel) {
+                    sel.innerHTML = '';
+                    autores.forEach(function(a) {
+                        var opt = document.createElement('option');
+                        opt.value = a.id;
+                        opt.text = a.nombre;
+                        sel.appendChild(opt);
+                    });
+                });
+            }
+        };
+        xhr.send();
+    }
+
+    function cargarLibros() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', BASE + '/libros');
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                document.getElementById('lista_libros').textContent = JSON.stringify(JSON.parse(xhr.responseText), null, 2);
+            }
+        };
+        xhr.send();
+    }
+
+    function crearAutor(e) {
+        e.preventDefault();
+        var datos = JSON.stringify({
+            nombre: document.getElementById('autor_nombre').value,
+            correo: document.getElementById('autor_correo').value
+        });
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', BASE + '/autores');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+            alert(xhr.status === 201 ? 'Autor creado' : 'Error: ' + xhr.responseText);
+            cargarAutores();
+        };
+        xhr.send(datos);
+    }
+
+    function actualizarAutor(e) {
+        e.preventDefault();
+        var id = document.getElementById('autor_upd_id').value;
+        var datos = JSON.stringify({
+            nombre: document.getElementById('autor_upd_nombre').value,
+            correo: document.getElementById('autor_upd_correo').value
+        });
+        var xhr = new XMLHttpRequest();
+        xhr.open('PUT', BASE + '/autores/' + id);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+            alert(xhr.status === 200 ? 'Autor actualizado' : 'Error: ' + xhr.responseText);
+            cargarAutores();
+        };
+        xhr.send(datos);
+    }
+
+    function eliminarAutor(e) {
+        e.preventDefault();
+        var id = document.getElementById('autor_del_id').value;
+        var xhr = new XMLHttpRequest();
+        xhr.open('DELETE', BASE + '/autores/' + id);
+        xhr.onload = function() {
+            alert(xhr.status === 200 ? 'Autor eliminado' : 'Error: ' + xhr.responseText);
+            cargarAutores();
+        };
+        xhr.send();
+    }
+
+    function buscarAutor(e) {
+        e.preventDefault();
+        var nombre = document.getElementById('autor_buscar_nombre').value;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', BASE + '/autores/' + nombre);
+        xhr.onload = function() {
+            document.getElementById('resultado_autor').textContent = JSON.stringify(JSON.parse(xhr.responseText), null, 2);
+        };
+        xhr.send();
+    }
+
+    function crearLibro(e) {
+        e.preventDefault();
+        var datos = JSON.stringify({
+            titulo: document.getElementById('libro_titulo').value,
+            anio_publicacion: document.getElementById('libro_anio').value,
+            autor_id: document.getElementById('libro_autor_id').value
+        });
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', BASE + '/libros');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+            alert(xhr.status === 201 ? 'Libro creado' : 'Error: ' + xhr.responseText);
+            cargarLibros();
+        };
+        xhr.send(datos);
+    }
+
+    function actualizarLibro(e) {
+        e.preventDefault();
+        var id = document.getElementById('libro_upd_id').value;
+        var datos = JSON.stringify({
+            titulo: document.getElementById('libro_upd_titulo').value,
+            anio_publicacion: document.getElementById('libro_upd_anio').value,
+            autor_id: document.getElementById('libro_upd_autor_id').value
+        });
+        var xhr = new XMLHttpRequest();
+        xhr.open('PUT', BASE + '/libros/' + id);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+            alert(xhr.status === 200 ? 'Libro actualizado' : 'Error: ' + xhr.responseText);
+            cargarLibros();
+        };
+        xhr.send(datos);
+    }
+
+    function eliminarLibro(e) {
+        e.preventDefault();
+        var id = document.getElementById('libro_del_id').value;
+        var xhr = new XMLHttpRequest();
+        xhr.open('DELETE', BASE + '/libros/' + id);
+        xhr.onload = function() {
+            alert(xhr.status === 200 ? 'Libro eliminado' : 'Error: ' + xhr.responseText);
+            cargarLibros();
+        };
+        xhr.send();
+    }
+
+    function buscarLibro(e) {
+        e.preventDefault();
+        var titulo = document.getElementById('libro_buscar_titulo').value;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', BASE + '/libros/' + titulo);
+        xhr.onload = function() {
+            document.getElementById('resultado_libro').textContent = JSON.stringify(JSON.parse(xhr.responseText), null, 2);
+        };
+        xhr.send();
+    }
+
+    cargarAutores();
+    cargarLibros();
+</script>
+
+</body>
+</html>
+
