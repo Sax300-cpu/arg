@@ -1,0 +1,615 @@
+Comandos paso a paso para E1
+cd C:\xampp\htdocs
+composer create-project laravel/laravel Libros
+Configura .env:
+DB_DATABASE=libros_db
+DB_USERNAME=root
+DB_PASSWORD=
+cd C:\xampp\htdocs\Libros
+php artisan make:model Autor -m
+php artisan make:model Libro -m
+php artisan make:controller Api/AutorController --api
+php artisan make:controller Api/LibroController --api
+
+---sql
+CREATE DATABASE IF NOT EXISTS libros_db;
+USE libros_db;
+
+CREATE TABLE autores (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    correo VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE libros (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    anio_publicacion YEAR NOT NULL,
+    autor_id BIGINT UNSIGNED NOT NULL,
+    FOREIGN KEY (autor_id) REFERENCES autores(id) ON DELETE CASCADE
+);
+
+INSERT INTO autores (nombre, correo) VALUES
+('Gabriel García Márquez', 'gabriel@correo.com'),
+('Mario Vargas Llosa', 'mario@correo.com'),
+('Julio Cortázar', 'julio@correo.com');
+
+INSERT INTO libros (titulo, anio_publicacion, autor_id) VALUES
+('Cien años de soledad', 1967, 1),
+('El amor en los tiempos del cólera', 1985, 1),
+('La ciudad y los perros', 1963, 2),
+('Rayuela', 1963, 3);
+--------
+php artisan make:resource AutorResource
+php artisan make:resource LibroResource
+php artisan migrate
+php artisan serve
+
+
+---------------------Archivos-------------------------------
+-----------app/Models/Autor.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Autor extends Model
+{
+    public $timestamps = false;
+    protected $table = 'autores';
+    protected $fillable = ['nombre', 'correo'];
+
+    public function libros()
+    {
+        return $this->hasMany(Libro::class, 'autor_id');
+    }
+}
+
+-----------app/Models/Libro.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Libro extends Model
+{
+    public $timestamps = false;
+    protected $fillable = ['titulo', 'anio_publicacion', 'autor_id'];
+
+    public function autor()
+    {
+        return $this->belongsTo(Autor::class, 'autor_id');
+    }
+}
+
+-----------app/Http/Controllers/Api/AutorController.php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Autor;
+use Illuminate\Http\Request;
+
+class AutorController extends Controller
+{
+    public function index()
+    {
+        return Autor::all();
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'correo' => 'required|email|unique:autores,correo',
+        ]);
+
+        $autor = Autor::create($request->only('nombre', 'correo'));
+        return response()->json($autor, 201);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $autor = Autor::find($id);
+        if (!$autor) {
+            return response()->json(['error' => 'Autor no encontrado'], 404);
+        }
+
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'correo' => 'required|email|unique:autores,correo,' . $id,
+        ]);
+
+        $autor->update($request->only('nombre', 'correo'));
+        return response()->json($autor);
+    }
+
+    public function librosPorAutor($nombre)
+    {
+        $autor = Autor::where('nombre', $nombre)->with('libros')->first();
+        if (!$autor) {
+            return response()->json(['error' => 'Autor no encontrado'], 404);
+        }
+        return $autor;
+    }
+}
+
+-----------app/Http/Controllers/Api/LibroController.php
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Libro;
+use Illuminate\Http\Request;
+
+class LibroController extends Controller
+{
+    public function index()
+    {
+        return Libro::with('autor')->get();
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'titulo' => 'required|string|max:255',
+            'anio_publicacion' => 'required|digits:4|integer|min:1000|max:2100',
+            'autor_id' => 'required|exists:autores,id',
+        ]);
+
+        $libro = Libro::create($request->only('titulo', 'anio_publicacion', 'autor_id'));
+        return response()->json($libro->load('autor'), 201);
+    }
+
+    public function show($titulo)
+    {
+        $libro = Libro::where('titulo', $titulo)->with('autor')->first();
+        if (!$libro) {
+            return response()->json(['error' => 'Libro no encontrado'], 404);
+        }
+        return $libro;
+    }
+
+    public function update(Request $request, $id)
+    {
+        $libro = Libro::find($id);
+        if (!$libro) {
+            return response()->json(['error' => 'Libro no encontrado'], 404);
+        }
+
+        $request->validate([
+            'titulo' => 'required|string|max:255',
+            'anio_publicacion' => 'required|digits:4|integer|min:1000|max:2100',
+            'autor_id' => 'required|exists:autores,id',
+        ]);
+
+        $libro->update($request->only('titulo', 'anio_publicacion', 'autor_id'));
+        return response()->json($libro->load('autor'));
+    }
+}
+
+-----------routes/web.php
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+
+-----------routes/api.php
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AutorController;
+use App\Http\Controllers\Api\LibroController;
+
+// API Autores
+Route::get('/autores', [AutorController::class, 'index']);
+Route::post('/autores', [AutorController::class, 'store']);
+Route::put('/autores/{id}', [AutorController::class, 'update']);
+Route::get('/autores/{nombre}', [AutorController::class, 'librosPorAutor']);
+
+// API Libros
+Route::get('/libros', [LibroController::class, 'index']);
+Route::get('/libros/{titulo}', [LibroController::class, 'show']);
+Route::post('/libros', [LibroController::class, 'store']);
+Route::put('/libros/{id}', [LibroController::class, 'update']);
+
+
+-----------bootstrap/app.php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        //
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();
+
+
+-----------public/index.html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Autores y Libros</title>
+</head>
+<body>
+
+<h1>Gestión de Autores y Libros</h1>
+
+<button onclick="mostrarTab('autores')">Autores</button>
+<button onclick="mostrarTab('libros')">Libros</button>
+
+<div id="seccionAutores">
+    <h2>Autores</h2>
+    <input type="text" id="txtBuscarAutor" placeholder="Nombre del autor...">
+    <button onclick="buscarLibrosPorAutor()">Buscar libros</button>
+    <button onclick="listarAutores()">Listar</button>
+    <button onclick="abrirModalAgregarAutor()">Nuevo Autor</button>
+    <div id="alertaAutores"></div>
+    <table border="1" id="tablaAutores">
+        <thead>
+            <tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Acciones</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <p id="sinAutores">No se encontraron autores.</p>
+</div>
+
+<div id="seccionLibros" style="display:none;">
+    <h2>Libros</h2>
+    <input type="text" id="txtBuscarLibro" placeholder="Título del libro...">
+    <button onclick="buscarLibro()">Buscar</button>
+    <button onclick="listarLibros()">Listar</button>
+    <button onclick="abrirModalAgregarLibro()">Nuevo Libro</button>
+    <div id="alertaLibros"></div>
+    <table border="1" id="tablaLibros">
+        <thead>
+            <tr><th>ID</th><th>Título</th><th>Año</th><th>Autor</th><th>Acciones</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <p id="sinLibros">No se encontraron libros.</p>
+</div>
+
+<div id="modalAutor" style="display:none;">
+    <h3 id="tituloModalAutor">Nuevo Autor</h3>
+    <input type="hidden" id="txtModoAutor" value="agregar">
+    <input type="hidden" id="txtIdAutor">
+    <label>Nombre</label><br>
+    <input type="text" id="txtNombreAutor"><br>
+    <label>Correo</label><br>
+    <input type="email" id="txtCorreoAutor"><br><br>
+    <button onclick="guardarAutor()">Guardar</button>
+    <button onclick="cerrarModal('modalAutor')">Cancelar</button>
+</div>
+
+<div id="modalLibro" style="display:none;">
+    <h3 id="tituloModalLibro">Nuevo Libro</h3>
+    <input type="hidden" id="txtModoLibro" value="agregar">
+    <input type="hidden" id="txtIdLibro">
+    <label>Título</label><br>
+    <input type="text" id="txtTituloLibro"><br>
+    <label>Año de publicación</label><br>
+    <input type="number" id="txtAnioLibro" min="1000" max="2100"><br>
+    <label>Autor</label><br>
+    <select id="comboAutor">
+        <option value="">Seleccione un autor</option>
+    </select><br><br>
+    <button onclick="guardarLibro()">Guardar</button>
+    <button onclick="cerrarModal('modalLibro')">Cancelar</button>
+</div>
+
+<div id="modalLibrosAutor" style="display:none;">
+    <h3 id="tituloLibrosAutor">Libros del Autor</h3>
+    <table border="1">
+        <thead>
+            <tr><th>Título</th><th>Año</th></tr>
+        </thead>
+        <tbody id="cuerpoLibrosAutor"></tbody>
+    </table>
+    <p id="sinLibrosAutor">Este autor no tiene libros.</p>
+    <button onclick="cerrarModal('modalLibrosAutor')">Cerrar</button>
+</div>
+
+<script>
+    const ApiAutores = "http://127.0.0.1:8000/api/autores";
+    const ApiLibros = "http://127.0.0.1:8000/api/libros";
+    let autores = [];
+    let libros = [];
+
+    function mostrarAlerta(contenedor, tipo, mensaje) {
+        document.getElementById(contenedor).innerHTML = '<p>' + tipo.toUpperCase() + ': ' + mensaje + '</p>';
+        setTimeout(function () { document.getElementById(contenedor).innerHTML = ''; }, 3000);
+    }
+
+    function mostrarTab(tab) {
+        document.getElementById('seccionAutores').style.display = tab === 'autores' ? 'block' : 'none';
+        document.getElementById('seccionLibros').style.display = tab === 'libros' ? 'block' : 'none';
+    }
+
+    function cerrarModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    function peticion(url, metodo, datos, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(metodo, url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                callback(xhr);
+            }
+        };
+        xhr.send(datos ? JSON.stringify(datos) : null);
+    }
+
+    function listarAutores() {
+        peticion(ApiAutores, 'GET', null, function (xhr) {
+            if (xhr.status === 200) {
+                autores = JSON.parse(xhr.responseText);
+                renderTablaAutores(autores);
+            } else {
+                mostrarAlerta('alertaAutores', 'error', 'No se pudo cargar la lista de autores.');
+            }
+        });
+    }
+
+    function renderTablaAutores(lista) {
+        var tbody = document.querySelector('#tablaAutores tbody');
+        tbody.innerHTML = '';
+        if (lista.length === 0) {
+            document.getElementById('sinAutores').style.display = 'block';
+            return;
+        }
+        document.getElementById('sinAutores').style.display = 'none';
+        lista.forEach(function (autor) {
+            tbody.innerHTML +=
+                '<tr>' +
+                '<td>' + autor.id + '</td>' +
+                '<td>' + autor.nombre + '</td>' +
+                '<td>' + autor.correo + '</td>' +
+                '<td><button onclick="abrirModalEditarAutor(' + autor.id + ')">Editar</button></td>' +
+                '</tr>';
+        });
+    }
+
+    function abrirModalAgregarAutor() {
+        document.getElementById('txtModoAutor').value = 'agregar';
+        document.getElementById('tituloModalAutor').textContent = 'Nuevo Autor';
+        document.getElementById('txtIdAutor').value = '';
+        document.getElementById('txtNombreAutor').value = '';
+        document.getElementById('txtCorreoAutor').value = '';
+        document.getElementById('modalAutor').style.display = 'block';
+    }
+
+    function abrirModalEditarAutor(id) {
+        var autor = autores.find(function (a) { return a.id === id; });
+        if (!autor) return;
+        document.getElementById('txtModoAutor').value = 'editar';
+        document.getElementById('tituloModalAutor').textContent = 'Editar Autor';
+        document.getElementById('txtIdAutor').value = autor.id;
+        document.getElementById('txtNombreAutor').value = autor.nombre;
+        document.getElementById('txtCorreoAutor').value = autor.correo;
+        document.getElementById('modalAutor').style.display = 'block';
+    }
+
+    function guardarAutor() {
+        var modo = document.getElementById('txtModoAutor').value;
+        var nombre = document.getElementById('txtNombreAutor').value.trim();
+        var correo = document.getElementById('txtCorreoAutor').value.trim();
+
+        if (!nombre || !correo) {
+            mostrarAlerta('alertaAutores', 'aviso', 'Todos los campos son obligatorios.');
+            return;
+        }
+
+        var datos = { nombre: nombre, correo: correo };
+
+        if (modo === 'agregar') {
+            peticion(ApiAutores, 'POST', datos, function (xhr) {
+                if (xhr.status === 201) {
+                    cerrarModal('modalAutor');
+                    mostrarAlerta('alertaAutores', 'exito', 'Autor agregado correctamente.');
+                    listarAutores();
+                } else {
+                    mostrarAlerta('alertaAutores', 'error', 'No se pudo guardar el autor.');
+                }
+            });
+        } else {
+            var id = document.getElementById('txtIdAutor').value;
+            peticion(ApiAutores + '/' + id, 'PUT', datos, function (xhr) {
+                if (xhr.status === 200) {
+                    cerrarModal('modalAutor');
+                    mostrarAlerta('alertaAutores', 'exito', 'Autor actualizado correctamente.');
+                    listarAutores();
+                } else {
+                    mostrarAlerta('alertaAutores', 'error', 'No se pudo actualizar el autor.');
+                }
+            });
+        }
+    }
+
+    function buscarLibrosPorAutor() {
+        var nombre = document.getElementById('txtBuscarAutor').value.trim();
+        if (!nombre) {
+            mostrarAlerta('alertaAutores', 'aviso', 'Ingrese el nombre de un autor.');
+            return;
+        }
+        peticion(ApiAutores + '/' + encodeURIComponent(nombre), 'GET', null, function (xhr) {
+            if (xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                var tbody = document.getElementById('cuerpoLibrosAutor');
+                tbody.innerHTML = '';
+                if (data.libros && data.libros.length > 0) {
+                    document.getElementById('sinLibrosAutor').style.display = 'none';
+                    data.libros.forEach(function (libro) {
+                        tbody.innerHTML +=
+                            '<tr><td>' + libro.titulo + '</td><td>' + libro.anio_publicacion + '</td></tr>';
+                    });
+                } else {
+                    document.getElementById('sinLibrosAutor').style.display = 'block';
+                }
+                document.getElementById('tituloLibrosAutor').textContent = 'Libros de ' + data.nombre;
+                document.getElementById('modalLibrosAutor').style.display = 'block';
+            } else {
+                mostrarAlerta('alertaAutores', 'error', 'Autor no encontrado.');
+            }
+        });
+    }
+
+    function listarLibros() {
+        peticion(ApiLibros, 'GET', null, function (xhr) {
+            if (xhr.status === 200) {
+                libros = JSON.parse(xhr.responseText);
+                renderTablaLibros(libros);
+            } else {
+                mostrarAlerta('alertaLibros', 'error', 'No se pudo cargar la lista de libros.');
+            }
+        });
+    }
+
+    function renderTablaLibros(lista) {
+        var tbody = document.querySelector('#tablaLibros tbody');
+        tbody.innerHTML = '';
+        if (lista.length === 0) {
+            document.getElementById('sinLibros').style.display = 'block';
+            return;
+        }
+        document.getElementById('sinLibros').style.display = 'none';
+        lista.forEach(function (libro) {
+            tbody.innerHTML +=
+                '<tr>' +
+                '<td>' + libro.id + '</td>' +
+                '<td>' + libro.titulo + '</td>' +
+                '<td>' + libro.anio_publicacion + '</td>' +
+                '<td>' + (libro.autor ? libro.autor.nombre : 'N/A') + '</td>' +
+                '<td><button onclick="abrirModalEditarLibro(' + libro.id + ')">Editar</button></td>' +
+                '</tr>';
+        });
+    }
+
+    function cargarComboAutores() {
+        peticion(ApiAutores, 'GET', null, function (xhr) {
+            if (xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                var combo = document.getElementById('comboAutor');
+                combo.innerHTML = '<option value="">Seleccione un autor</option>';
+                data.forEach(function (autor) {
+                    combo.innerHTML += '<option value="' + autor.id + '">' + autor.nombre + '</option>';
+                });
+            }
+        });
+    }
+
+    function abrirModalAgregarLibro() {
+        document.getElementById('txtModoLibro').value = 'agregar';
+        document.getElementById('tituloModalLibro').textContent = 'Nuevo Libro';
+        document.getElementById('txtIdLibro').value = '';
+        document.getElementById('txtTituloLibro').value = '';
+        document.getElementById('txtAnioLibro').value = '';
+        cargarComboAutores();
+        document.getElementById('modalLibro').style.display = 'block';
+    }
+
+    function abrirModalEditarLibro(id) {
+        var libro = libros.find(function (l) { return l.id === id; });
+        if (!libro) return;
+        document.getElementById('txtModoLibro').value = 'editar';
+        document.getElementById('tituloModalLibro').textContent = 'Editar Libro';
+        document.getElementById('txtIdLibro').value = libro.id;
+        document.getElementById('txtTituloLibro').value = libro.titulo;
+        document.getElementById('txtAnioLibro').value = libro.anio_publicacion;
+        cargarComboAutores();
+        setTimeout(function () {
+            document.getElementById('comboAutor').value = libro.autor_id;
+        }, 300);
+        document.getElementById('modalLibro').style.display = 'block';
+    }
+
+    function guardarLibro() {
+        var modo = document.getElementById('txtModoLibro').value;
+        var titulo = document.getElementById('txtTituloLibro').value.trim();
+        var anio = document.getElementById('txtAnioLibro').value;
+        var autor_id = document.getElementById('comboAutor').value;
+
+        if (!titulo || !anio || !autor_id) {
+            mostrarAlerta('alertaLibros', 'aviso', 'Todos los campos son obligatorios.');
+            return;
+        }
+
+        var datos = { titulo: titulo, anio_publicacion: anio, autor_id: autor_id };
+
+        if (modo === 'agregar') {
+            peticion(ApiLibros, 'POST', datos, function (xhr) {
+                if (xhr.status === 201) {
+                    cerrarModal('modalLibro');
+                    mostrarAlerta('alertaLibros', 'exito', 'Libro agregado correctamente.');
+                    listarLibros();
+                } else {
+                    mostrarAlerta('alertaLibros', 'error', 'No se pudo guardar el libro.');
+                }
+            });
+        } else {
+            var id = document.getElementById('txtIdLibro').value;
+            peticion(ApiLibros + '/' + id, 'PUT', datos, function (xhr) {
+                if (xhr.status === 200) {
+                    cerrarModal('modalLibro');
+                    mostrarAlerta('alertaLibros', 'exito', 'Libro actualizado correctamente.');
+                    listarLibros();
+                } else {
+                    mostrarAlerta('alertaLibros', 'error', 'No se pudo actualizar el libro.');
+                }
+            });
+        }
+    }
+
+    function buscarLibro() {
+        var titulo = document.getElementById('txtBuscarLibro').value.trim();
+        if (!titulo) {
+            mostrarAlerta('alertaLibros', 'aviso', 'Ingrese el título de un libro.');
+            return;
+        }
+        peticion(ApiLibros + '/' + encodeURIComponent(titulo), 'GET', null, function (xhr) {
+            if (xhr.status === 200) {
+                renderTablaLibros([JSON.parse(xhr.responseText)]);
+            } else {
+                mostrarAlerta('alertaLibros', 'error', 'Libro no encontrado.');
+            }
+        });
+    }
+
+    window.onload = function () {
+        listarAutores();
+    };
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
